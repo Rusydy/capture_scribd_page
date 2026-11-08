@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { PDFDocument } from "pdf-lib";
 import { launch, type Page } from "puppeteer-core";
 import { parseDocumentUrl, readEnvironment } from "./env.ts";
-import { parseSelection } from "./selection.ts";
+import { parseSelection, USAGE } from "./selection.ts";
 import {
   capturePage,
   readPageCount,
@@ -20,6 +20,8 @@ const OUTPUT_DIR = fileURLToPath(new URL("../output/", import.meta.url));
 const PROFILE_DIR = fileURLToPath(
   new URL("../.chrome-profile/", import.meta.url),
 );
+// Screenshots are taken at 2x (192 dpi). PDF pages are measured in points (72 per inch).
+const PDF_POINTS_PER_PIXEL = 72 / 192;
 
 async function writeOutput(path: string, bytes: Uint8Array) {
   const temporaryPath = `${path}.${randomUUID()}.tmp`;
@@ -67,17 +69,17 @@ async function captureWhenReadable(
 
 async function main() {
   const args = process.argv.slice(2);
-  const [option] = args;
-  if (option === "--sign-in" && args.length === 1) {
+  if (args.includes("--sign-in")) {
+    if (args.length !== 1) throw new Error(USAGE);
     await signIn();
     return;
   }
 
-  const usesSavedProfile = option === "--signed-in";
-  const captureArgs = usesSavedProfile ? args.slice(1) : args;
-  const isInteractive = captureArgs[0] === "--interactive";
+  // These two flags can appear anywhere. The rest is the page selection.
+  const usesSavedProfile = args.includes("--signed-in");
+  const isInteractive = args.includes("--interactive");
   const selection = parseSelection(
-    isInteractive ? captureArgs.slice(1) : captureArgs,
+    args.filter((arg) => arg !== "--signed-in" && arg !== "--interactive"),
   );
   const environment = readEnvironment();
   if (!environment.success) {
@@ -152,7 +154,10 @@ async function main() {
       await writeOutput(join(outputDir, `page-${pageNumber}.jpg`), screenshot);
 
       const image = await pdf.embedJpg(screenshot);
-      const pdfPage = pdf.addPage([image.width * 0.375, image.height * 0.375]);
+      const pdfPage = pdf.addPage([
+        image.width * PDF_POINTS_PER_PIXEL,
+        image.height * PDF_POINTS_PER_PIXEL,
+      ]);
       pdfPage.drawImage(image, {
         x: 0,
         y: 0,

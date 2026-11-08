@@ -29,7 +29,7 @@ npm run capture -- --signed-in --page 1
 npm run capture -- --signed-in --range 3 5
 ```
 
-Use `--signed-in` before any page-selection flag to reuse the saved session. The profile lives in the Git-ignored `.chrome-profile/` directory and contains local session data. Ordinary captures use a fresh browser session. For a document that Scribd unlocks in batches after an ad, add `--interactive` to open a visible Chrome window and pause when a page is locked or takes too long to become readable.
+Use `--signed-in` to reuse the saved session. The `--signed-in` and `--interactive` flags can go in any order, before or after the page-selection flag. The profile lives in the Git-ignored `.chrome-profile/` directory and contains local session data. Ordinary captures use a fresh browser session. For a document that Scribd unlocks in batches after an ad, add `--interactive` to open a visible Chrome window and pause when a page is locked or takes too long to become readable.
 
 ```sh
 npm run capture -- --signed-in --interactive --all
